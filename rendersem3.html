@@ -215,7 +215,9 @@ function loadActiveDay() {
     .then(data => {
       if (data.status !== "success" || !data.active) { showStep('step-closed'); return; }
       activeDay = data.active;
-      document.getElementById('dayTitle').textContent = activeDay.title || ("Day " + activeDay.day);
+      var PHASE = "The Ascent Phase";
+      var topic = (activeDay.title || ("Day " + activeDay.day)).replace(/\s*[—–-]\s*The Render\s*$/i, '').trim();
+      document.getElementById('dayTitle').textContent = PHASE + " — " + topic;
       document.getElementById('dayBadge').textContent = "Day " + activeDay.day;
 
       const subEl = document.getElementById('daySubtitle');
