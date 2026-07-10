@@ -28,7 +28,7 @@
   .topbar img { height: 64px; width: auto; display: block; max-width: 100%; background: #FFFFFF; padding: 6px 10px; border-radius: 8px; }
   .head { margin-bottom: 18px; }
   .brand { font-size: 13px; letter-spacing: 2px; text-transform: uppercase; color: var(--blue); font-weight: 700; }
-  h1 { font-size: 26px; margin-top: 4px; color: var(--ink); }
+  h1 { font-size: 26px; margin-top: 4px; color: var(--ink); line-height: 1.25; }
   .subtext { font-size: 14px; color: var(--grey); margin-top: 6px; }
   .day-badge {
     display: inline-block; margin-top: 10px; padding: 4px 12px; border-radius: 20px;
@@ -81,6 +81,20 @@
   }
   .opt.checked .marker { border-color: var(--blue); background: var(--blue); color: #fff; }
 
+  /* ---- day picker ---- */
+  .day-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px; }
+  .day-choice {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%;
+    background: var(--white); border: 1px solid var(--line); border-radius: 12px;
+    padding: 16px 18px; cursor: pointer; transition: .12s; text-align: left; font-family: inherit;
+  }
+  .day-choice:hover { border-color: var(--blue); background: var(--blue-soft); }
+  .day-choice .dc-main { display: flex; flex-direction: column; gap: 3px; }
+  .day-choice .dc-day { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--blue-dark); }
+  .day-choice .dc-title { font-size: 16px; font-weight: 700; color: var(--ink); }
+  .day-choice .dc-meta { font-size: 12px; color: var(--grey); }
+  .day-choice .dc-arrow { color: var(--grey); font-size: 20px; flex-shrink: 0; }
+
   .navrow { display: flex; gap: 12px; margin-top: 4px; }
   button.nav {
     flex: 1; padding: 14px; border-radius: 10px; border: 1px solid var(--line);
@@ -117,15 +131,15 @@
   <!-- LOADING -->
   <div class="step active" id="step-loading">
     <div class="spinner"></div>
-    <p style="text-align:center;color:var(--grey);font-size:14px;">Checking today's Render…</p>
+    <p style="text-align:center;color:var(--grey);font-size:14px;">Checking today's Renders…</p>
   </div>
 
-  <!-- NO ACTIVE DAY -->
+  <!-- NO OPEN DAYS -->
   <div class="step" id="step-closed">
     <div class="notice">
       <div class="icon">🔒</div>
       <h2>No Render is open right now</h2>
-      <p>Your trainer hasn't opened today's questions yet. Please check back shortly.</p>
+      <p>Your trainer hasn't opened any Render yet. Please check back shortly.</p>
     </div>
   </div>
 
@@ -133,13 +147,8 @@
   <div class="step" id="step-details">
     <div class="head">
       <div class="brand">The Professional Edge · Semester 3</div>
-      <h1 id="dayTitle">Daily Render</h1>
-      <span class="day-badge" id="dayBadge">Day</span>
-      <div class="day-subtitle" id="daySubtitle" style="display:none;"></div>
-    </div>
-    <div class="instructions-card" id="instructionsCard" style="display:none;">
-      <h3>Instructions — Please Read</h3>
-      <div id="instructionsBody"></div>
+      <h1>The Ascent Phase</h1>
+      <p class="subtext">This is not a test — there are no right or wrong answers, only honest ones. Enter your details to begin.</p>
     </div>
     <div class="card">
       <label>Name of the Student</label>
@@ -162,16 +171,38 @@
     </div>
     <div class="error-banner" id="detailsError">Please fill in every field before continuing.</div>
     <div class="navrow">
-      <button class="nav primary" onclick="beginQuestions()">Start</button>
+      <button class="nav primary" onclick="beginPicker()">Continue</button>
     </div>
   </div>
 
-  <!-- ALREADY DONE -->
-  <div class="step" id="step-already">
-    <div class="notice ok">
-      <div class="icon">✓</div>
-      <h2>You've already completed this day</h2>
-      <p id="alreadyText">Our records show this roll number has already submitted today's Render.</p>
+  <!-- DAY PICKER -->
+  <div class="step" id="step-picker">
+    <div class="head">
+      <div class="brand">The Professional Edge · Semester 3</div>
+      <h1>The Ascent Phase</h1>
+      <p class="subtext">Select the day whose Render you'd like to submit. Tap a day to see its questions.</p>
+    </div>
+    <div class="day-list" id="dayList"></div>
+    <div class="navrow">
+      <button class="nav" onclick="showStep('step-details')">Back</button>
+    </div>
+  </div>
+
+  <!-- DAY INTRO -->
+  <div class="step" id="step-intro">
+    <div class="head">
+      <div class="brand">The Professional Edge · Semester 3</div>
+      <h1 id="introTitle"></h1>
+      <span class="day-badge" id="introBadge">Day</span>
+      <div class="day-subtitle" id="introSubtitle" style="display:none;"></div>
+    </div>
+    <div class="instructions-card" id="introInstructionsCard" style="display:none;">
+      <h3>Instructions — Please Read</h3>
+      <div id="introInstructionsBody"></div>
+    </div>
+    <div class="navrow">
+      <button class="nav" onclick="showStep('step-picker')">Back</button>
+      <button class="nav primary" onclick="startQuestions()">Start this Render</button>
     </div>
   </div>
 
@@ -192,13 +223,20 @@
       <h2>Submitted</h2>
       <p id="doneText">Your responses have been recorded. Thank you.</p>
     </div>
+    <div class="navrow" id="doneNav" style="max-width:420px;margin:0 auto;display:none;">
+      <button class="nav primary" onclick="showStep('step-picker')">Answer another Render</button>
+    </div>
   </div>
 </div>
 
 <script>
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzAzEhhvTj_RnRzu2yg9g8ipXMD4lrkUahkyqizMxGHtbYt24Q4fdh8e_UMmuh9AjjA/exec";
 
-let activeDay = null;      // { day, title, questions:[{type, text, options?}] }
+// The phase name shown above each Render's topic.
+const PHASE = "The Ascent Phase";
+
+let openDays = [];         // every day currently open: [{day,title,subtitle,instructions,questions}]
+let activeDay = null;      // the day the student is answering right now
 let answers = [];          // per question: option text (mc) or typed string (text)
 let currentQ = 0;
 
@@ -209,53 +247,75 @@ function showStep(id) {
 }
 function setProgress(pct) { document.getElementById('progressFill').style.width = pct + '%'; }
 
-function loadActiveDay() {
-  fetch(SCRIPT_URL + "?action=activeDay")
+// Strips a trailing "— The Render" from a stored title.
+function topicOf(d) {
+  return (d.title || ("Day " + d.day)).replace(/\s*[—–-]\s*The Render\s*$/i, '').trim();
+}
+
+/* 1. On load, ask the Sheet which days are currently open. */
+function loadOpenDays() {
+  fetch(SCRIPT_URL + "?action=openDays")
     .then(r => r.json())
     .then(data => {
-      if (data.status !== "success" || !data.active) { showStep('step-closed'); return; }
-      activeDay = data.active;
-      var PHASE = "The Ascent Phase";
-      var topic = (activeDay.title || ("Day " + activeDay.day)).replace(/\s*[—–-]\s*The Render\s*$/i, '').trim();
-      document.getElementById('dayTitle').textContent = PHASE + " — " + topic;
-      document.getElementById('dayBadge').textContent = "Day " + activeDay.day;
-
-      const subEl = document.getElementById('daySubtitle');
-      if (activeDay.subtitle) { subEl.textContent = activeDay.subtitle; subEl.style.display = 'block'; }
-      else { subEl.style.display = 'none'; }
-
-      const insCard = document.getElementById('instructionsCard');
-      const insBody = document.getElementById('instructionsBody');
-      if (activeDay.instructions) {
-        const paras = String(activeDay.instructions).split(/\n\s*\n/);
-        insBody.innerHTML = paras.map(p => '<p>' + escapeHtml(p).replace(/\n/g, '<br>') + '</p>').join('');
-        insCard.style.display = 'block';
-      } else {
-        insCard.style.display = 'none';
-      }
-
+      if (data.status !== "success" || !data.days || data.days.length === 0) { showStep('step-closed'); return; }
+      openDays = data.days;
       setProgress(5);
       showStep('step-details');
     })
     .catch(() => showStep('step-closed'));
 }
 
-function beginQuestions() {
+/* 2. Validate details, then show the picker. */
+function beginPicker() {
   const fields = ['f_name', 'f_roll', 'f_college', 'f_programme', 'f_section', 'f_stream'];
   const missing = fields.some(id => !document.getElementById(id).value.trim());
   const err = document.getElementById('detailsError');
   if (missing) { err.style.display = 'block'; return; }
   err.style.display = 'none';
 
-  const roll = document.getElementById('f_roll').value.trim();
-  const url = SCRIPT_URL + "?action=checkSubmitted&day=" + encodeURIComponent(activeDay.day) + "&roll=" + encodeURIComponent(roll);
-  fetch(url)
-    .then(r => r.json())
-    .then(data => {
-      if (data.status === "success" && data.submitted) { showStep('step-already'); return; }
-      startQuestions();
-    })
-    .catch(() => startQuestions());
+  renderPicker();
+  setProgress(15);
+  showStep('step-picker');
+}
+
+function renderPicker() {
+  const list = document.getElementById('dayList');
+  list.innerHTML = openDays.map(function (d, i) {
+    const nQ = (d.questions || []).length;
+    return '<button class="day-choice" onclick="pickDay(' + i + ')">' +
+      '<span class="dc-main">' +
+        '<span class="dc-day">Day ' + escapeHtml(d.day) + '</span>' +
+        '<span class="dc-title">' + escapeHtml(topicOf(d)) + '</span>' +
+        '<span class="dc-meta">' + nQ + ' question' + (nQ === 1 ? '' : 's') + '</span>' +
+      '</span>' +
+      '<span class="dc-arrow">→</span>' +
+    '</button>';
+  }).join('');
+}
+
+/* 3. Student picks a day → show its title + instructions. */
+function pickDay(i) {
+  activeDay = openDays[i];
+
+  document.getElementById('introTitle').textContent = PHASE + " — " + topicOf(activeDay);
+  document.getElementById('introBadge').textContent = "Day " + activeDay.day;
+
+  const subEl = document.getElementById('introSubtitle');
+  if (activeDay.subtitle) { subEl.textContent = activeDay.subtitle; subEl.style.display = 'block'; }
+  else { subEl.style.display = 'none'; }
+
+  const insCard = document.getElementById('introInstructionsCard');
+  const insBody = document.getElementById('introInstructionsBody');
+  if (activeDay.instructions) {
+    const paras = String(activeDay.instructions).split(/\n\s*\n/);
+    insBody.innerHTML = paras.map(p => '<p>' + escapeHtml(p).replace(/\n/g, '<br>') + '</p>').join('');
+    insCard.style.display = 'block';
+  } else {
+    insCard.style.display = 'none';
+  }
+
+  setProgress(20);
+  showStep('step-intro');
 }
 
 function startQuestions() {
@@ -294,7 +354,7 @@ function renderQuestion() {
   document.getElementById('qNextBtn').textContent = currentQ === n - 1 ? 'Submit' : 'Next';
   document.getElementById('qNextBtn').disabled = isAnswered(currentQ) ? false : true;
   document.getElementById('qBackBtn').disabled = false;
-  setProgress(5 + (currentQ / n) * 90);
+  setProgress(20 + (currentQ / n) * 75);
 }
 
 function isAnswered(i) {
@@ -314,7 +374,7 @@ function onTextInput() {
 }
 
 function prevQuestion() {
-  if (currentQ === 0) { setProgress(5); showStep('step-details'); return; }
+  if (currentQ === 0) { setProgress(20); showStep('step-intro'); return; }
   currentQ--;
   renderQuestion();
 }
@@ -345,15 +405,17 @@ function submit() {
     .then(r => r.json())
     .then(data => {
       setProgress(100);
-      if (data.status === "duplicate") { showStep('step-already'); return; }
       document.getElementById('doneText').textContent =
         "Your Day " + activeDay.day + " Render has been recorded. Thank you, " + payload.name + ".";
+      // Offer another Render only when more than one day is open.
+      document.getElementById('doneNav').style.display = (openDays.length > 1) ? 'flex' : 'none';
       showStep('step-done');
     })
     .catch(() => {
       setProgress(100);
       document.getElementById('doneText').textContent =
         "Something went wrong sending your response. Please check your connection and ask your trainer if this keeps happening.";
+      document.getElementById('doneNav').style.display = 'none';
       showStep('step-done');
     });
 }
@@ -363,7 +425,7 @@ function escapeHtml(s) {
     .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
 
-loadActiveDay();
+loadOpenDays();
 </script>
 </body>
 </html>
